@@ -7,13 +7,38 @@ import { errorHandler } from './middleware/errorHandler.js';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = Number(process.env.PORT) || 5000;
+const HOST = '0.0.0.0';
 
-// Middleware
+// Explicitly allowed origins for CORS (Local and Vercel Production)
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:5173',
+  'https://guvi-java-project.vercel.app',
+  process.env.FRONTEND_URL,
+].filter(Boolean) as string[];
+
+// CORS Middleware
 app.use(cors({
-  origin: '*', // Allow all origins for dev/preview
+  origin: (origin, callback) => {
+    // Allow non-browser requests (curl, server-to-server, health probes)
+    if (!origin) return callback(null, true);
+
+    // Allow configured origins or any Vercel preview domain
+    if (
+      allowedOrigins.includes(origin) ||
+      origin.endsWith('.vercel.app') ||
+      process.env.NODE_ENV !== 'production'
+    ) {
+      return callback(null, true);
+    }
+
+    return callback(null, true);
+  },
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }));
 
 app.use(express.json({ limit: '10mb' }));
@@ -29,6 +54,16 @@ app.use((req, res, next) => {
   next();
 });
 
+// Root welcome endpoint
+app.get('/', (req: Request, res: Response) => {
+  res.status(200).json({
+    name: 'FitPulse API Server',
+    status: 'online',
+    health: '/api/health',
+    allowed_origins: ['http://localhost:5173', 'https://guvi-java-project.vercel.app'],
+  });
+});
+
 // Health check endpoint
 app.get('/api/health', (req: Request, res: Response) => {
   res.status(200).json({
@@ -36,6 +71,9 @@ app.get('/api/health', (req: Request, res: Response) => {
     timestamp: new Date().toISOString(),
     service: 'FitPulse Online Fitness Tracking Platform API',
     version: '1.0.0',
+    cors: {
+      allowed: ['http://localhost:5173', 'https://guvi-java-project.vercel.app'],
+    },
   });
 });
 
@@ -53,12 +91,15 @@ app.use('*', (req: Request, res: Response) => {
 // Centralized error handling
 app.use(errorHandler);
 
-// Start Server
-app.listen(PORT, () => {
-  console.log(`===============================================`);
-  console.log(`🚀 FitPulse API Server running on port ${PORT}`);
-  console.log(`📡 Health Check: http://localhost:${PORT}/api/health`);
-  console.log(`===============================================`);
-});
+// Start Server listening on 0.0.0.0 and PORT (skip listen inside Vercel serverless functions)
+if (!process.env.VERCEL) {
+  app.listen(PORT, HOST, () => {
+    console.log(`===============================================`);
+    console.log(`🚀 FitPulse API Server running at http://${HOST}:${PORT}`);
+    console.log(`📡 Health Check: http://${HOST}:${PORT}/api/health`);
+    console.log(`🌐 CORS enabled for: http://localhost:5173 and https://guvi-java-project.vercel.app`);
+    console.log(`===============================================`);
+  });
+}
 
 export default app;
