@@ -4,10 +4,22 @@
   "private": true,
   "description": "FitPulse Enterprise Online Fitness Tracking Platform",
   "scripts": {
-    "dev:server": "npm --prefix server run dev",
-    "dev:client": "npm --prefix client run dev",
-    "seed": "npm --prefix server run prisma:seed",
-    "test": "npx --prefix server tsx test-e2e.ts",
-    "build": "npm --prefix server run build && npm --prefix client run build"
+    "dev": "npm run dev:all",
+    "dev:all": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "npm --prefix backend run dev",
+    "build": "npm --prefix backend run build && npm --prefix frontend run build",
+    "build:frontend": "npm --prefix frontend run build",
+    "build:backend": "npm --prefix backend run build",
+    "db:seed": "npm --prefix backend run prisma:seed",
+    "db:push": "npm --prefix backend run prisma:push",
+    "db:generate": "npm --prefix backend run prisma:generate",
+    "test": "npm --prefix backend test"
+  },
+  "devDependencies": {
+    "prisma": "^5.22.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0"
   }
 }
