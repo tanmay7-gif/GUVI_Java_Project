@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import apiRoutes from './routes/index.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { autoSeedDatabase } from './config/autoSeed.js';
 
 dotenv.config();
 
@@ -93,12 +94,15 @@ app.use(errorHandler);
 
 // Start Server listening on 0.0.0.0 and PORT (skip listen inside Vercel serverless functions)
 if (!process.env.VERCEL) {
-  app.listen(PORT, HOST, () => {
+  app.listen(PORT, HOST, async () => {
     console.log(`===============================================`);
     console.log(`🚀 FitPulse API Server running at http://${HOST}:${PORT}`);
     console.log(`📡 Health Check: http://${HOST}:${PORT}/api/health`);
     console.log(`🌐 CORS enabled for: http://localhost:5173 and https://guvi-java-project.vercel.app`);
     console.log(`===============================================`);
+
+    // Automatically seed demo accounts and initial telemetry on boot
+    await autoSeedDatabase();
   });
 }
 
